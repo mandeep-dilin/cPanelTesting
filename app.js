@@ -11,7 +11,7 @@ const server = http.createServer((req, res) => {
 
   res.writeHead(200, { 'Content-Type': 'text/html' });
   res.end(`
-    <h1>Node app is running</h1>
+    <h1>Node app v2</h1>
     <p>Node version: ${process.version}</p>
     <p>Started: ${started}</p>
     <p>Path: ${req.url}</p>
