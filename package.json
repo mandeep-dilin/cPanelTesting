@@ -1,0 +1,12 @@
+{
+  "name": "node-test-app",
+  "version": "1.0.0",
+  "description": "Basic Node app for testing cPanel git deploy",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
