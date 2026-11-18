@@ -1,0 +1,110 @@
+const http = require('http');
+const os = require('os');
+
+// Change this on each push to test that updates go live
+const APP_VERSION = 'v2';
+
+const PORT = process.env.PORT || 3000;
+const started = new Date();
+
+function info() {
+  return {
+    status: 'ok',
+    version: APP_VERSION,
+    node: process.version,
+    started: started.toISOString(),
+    uptime: Math.floor(process.uptime()),
+    pid: process.pid,
+    hostname: os.hostname(),
+    memoryMB: Math.round(process.memoryUsage().rss / 1024 / 1024),
+    port: String(PORT),
+  };
+}
+
+const page = () => `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Node Test App</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, Arial, sans-serif; background: #0f172a; color: #e2e8f0;
+         display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+  .card { background: #1e293b; border-radius: 14px; padding: 28px; width: 100%; max-width: 460px;
+          box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+  .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  h1 { font-size: 20px; margin: 0; }
+  .badge { background: #22c55e; color: #052e16; font-weight: 700; font-size: 12px;
+           padding: 4px 10px; border-radius: 999px; }
+  .badge.down { background: #ef4444; color: #fff; }
+  .ver { font-size: 34px; font-weight: 800; color: #38bdf8; margin: 0 0 18px; }
+  .row { display: flex; justify-content: space-between; padding: 10px 0; border-top: 1px solid #334155; font-size: 14px; }
+  .row span:first-child { color: #94a3b8; }
+  .row span:last-child { font-family: ui-monospace, Consolas, monospace; }
+  .foot { margin-top: 16px; font-size: 12px; color: #64748b; text-align: center; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="top">
+    <h1>Node Test App</h1>
+    <span class="badge" id="badge">RUNNING</span>
+  </div>
+  <p class="ver" id="version">-</p>
+  <div class="row"><span>Node version</span><span id="node">-</span></div>
+  <div class="row"><span>Started</span><span id="started">-</span></div>
+  <div class="row"><span>Uptime</span><span id="uptime">-</span></div>
+  <div class="row"><span>Process ID</span><span id="pid">-</span></div>
+  <div class="row"><span>Memory</span><span id="mem">-</span></div>
+  <div class="row"><span>Hostname</span><span id="host">-</span></div>
+  <div class="row"><span>Port</span><span id="port">-</span></div>
+  <div class="foot">Auto-refreshes every 3s · <span id="checked">-</span></div>
+</div>
+<script>
+  const $ = (id) => document.getElementById(id);
+  function fmt(s) {
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    return (h ? h + 'h ' : '') + (h || m ? m + 'm ' : '') + sec + 's';
+  }
+  async function load() {
+    try {
+      const r = await fetch('health', { cache: 'no-store' });
+      const d = await r.json();
+      $('version').textContent = d.version;
+      $('node').textContent = d.node;
+      $('started').textContent = new Date(d.started).toLocaleString();
+      $('uptime').textContent = fmt(d.uptime);
+      $('pid').textContent = d.pid;
+      $('mem').textContent = d.memoryMB + ' MB';
+      $('host').textContent = d.hostname;
+      $('port').textContent = d.port;
+      $('badge').textContent = 'RUNNING';
+      $('badge').className = 'badge';
+    } catch (e) {
+      $('badge').textContent = 'DOWN';
+      $('badge').className = 'badge down';
+    }
+    $('checked').textContent = 'last check ' + new Date().toLocaleTimeString();
+  }
+  load();
+  setInterval(load, 3000);
+</script>
+</body>
+</html>`;
+
+const server = http.createServer((req, res) => {
+  const path = req.url.split('?')[0];
+
+  if (path.endsWith('/health')) {
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    return res.end(JSON.stringify(info()));
+  }
+
+  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+  res.end(page());
+});
+
+server.listen(PORT, () => {
+  console.log(`Listening on port ${PORT} (${APP_VERSION})`);
+});
